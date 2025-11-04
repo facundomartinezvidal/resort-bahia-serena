@@ -35,3 +35,17 @@ inactiva automáticamente esas habitaciones (pasarlas a Inactiva hasta su
 reactivación), dejando constancia en ALERTAS (tipo Mantenimiento). Este
 procedimiento evita que Recepción ofrezca habitaciones en reparación y mejora
 la calidad del inventario visible.
+
+En cuanto a reportes y cálculos sencillos, la gerencia solicita recursos reutilizables:
+
+1. Una función que calcule el margen de un servicio (precio − costo) para
+   análisis de rentabilidad;
+2. Una vista que liste habitaciones repetidas por cliente y check-in, para
+   auditoría de errores;
+3. Un procedimiento para registrar reservas que: valide cliente activo,
+   compruebe habitaciones disponibles, determine la tarifa aplicable por tipo
+   y fecha, calcule subtotal por habitación y total de la reserva;
+4. Un trigger que impida la duplicación de la misma habitación para el
+   mismo cliente en el mismo check-in;
+5. Un cursor que inactiva habitaciones Fuera de Servicio y deja registro en
+   ALERTAS.
