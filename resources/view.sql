@@ -5,7 +5,7 @@ SELECT
     c.dni,
     a.id_habitacion,
     h.nombre AS nombre_habitacion,
-    r.fecha_check_in,
+    r.fecha_checkin,
     COUNT(*) AS cantidad_intentos,
     MIN(a.fecha_creacion) AS primer_intento,
     MAX(a.fecha_creacion) AS ultimo_intento
@@ -21,6 +21,6 @@ GROUP BY
     c.dni,
     a.id_habitacion,
     h.nombre,
-    r.fecha_check_in;
+    r.fecha_checkin;
 
 
