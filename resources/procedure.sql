@@ -54,37 +54,6 @@ BEGIN
             THROW 50004, 'La habitación no existe, no está disponible o fue eliminada.', 1;
         END
 
-        -- Verificar que el cliente no haya intentado reservar la misma habitación
-        IF EXISTS (
-            SELECT 1 FROM dbo.reserva r
-            INNER JOIN dbo.detalle_reserva dr on r.id_reserva = dr.id_reserva
-            WHERE r.id_cliente = @id_cliente
-            AND dr.id_habitacion = @id_habitacion
-            AND r.estado_reserva NOT IN ('CANCELADA', 'COMPLETADA')
-            AND r.fecha_eliminacion IS NULL
-            AND dr.fecha_eliminacion IS NULL
-            AND (@fecha_inicio BETWEEN dr.fecha_checkin AND dr.fecha_checkout
-                 OR @fecha_fin BETWEEN dr.fecha_checkin AND dr.fecha_checkout
-                 OR dr.fecha_checkin BETWEEN @fecha_inicio AND @fecha_fin)
-        )
-        BEGIN
-            DECLARE @id_reserva_error INT = (
-                SELECT TOP 1 r.id_reserva FROM dbo.reserva r
-                INNER JOIN dbo.detalle_reserva dr on r.id_reserva = dr.id_reserva
-                WHERE r.id_cliente = @id_cliente
-                AND dr.id_habitacion = @id_habitacion
-                AND r.estado_reserva NOT IN ('CANCELADA', 'COMPLETADA')
-                AND r.fecha_eliminacion IS NULL
-                AND dr.fecha_eliminacion IS NULL
-                AND (@fecha_inicio BETWEEN dr.fecha_checkin AND dr.fecha_checkout
-                     OR @fecha_fin BETWEEN dr.fecha_checkin AND dr.fecha_checkout
-                     OR dr.fecha_checkin BETWEEN @fecha_inicio AND @fecha_fin)
-            );
-            INSERT INTO dbo.alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion)
-            VALUES (@id_cliente, @id_reserva_error, @id_habitacion, 'REPETICION', 'El cliente ya ha intentado reservar esta habitación en las fechas solicitadas.');
-            THROW 50005, 'El cliente ya ha intentado reservar esta habitación en las fechas solicitadas.', 1;
-        END
-
         -- Verificar si la habitación está reservada en las fechas solicitadas POR OTRO CLIENTE
         IF EXISTS (
             SELECT 1 FROM dbo.reserva r
