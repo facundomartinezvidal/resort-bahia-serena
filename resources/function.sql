@@ -11,4 +11,3 @@ BEGIN
     
     RETURN ISNULL(@margen, 0);
 END;
-
