@@ -2,7 +2,9 @@ CREATE OR ALTER PROCEDURE dbo.sp_reservar_habitacion
     @id_cliente INT, 
     @id_habitacion INT, 
     @fecha_inicio DATETIME, 
-    @fecha_fin DATETIME
+    @fecha_fin DATETIME,
+    @id_servicio_adicional INT = NULL,
+    @cantidad_servicio INT = 1
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -108,6 +110,49 @@ BEGIN
         END
 
         DECLARE @cant_noches INT = DATEDIFF(DAY, @fecha_inicio, @fecha_fin);
+        DECLARE @precio_servicio DECIMAL(10,2) = 0;
+        DECLARE @margen_servicio DECIMAL(10,2) = 0;
+        DECLARE @subtotal_servicio DECIMAL(10,2) = 0;
+
+        -- Validar y procesar servicio adicional si fue proporcionado
+        IF @id_servicio_adicional IS NOT NULL
+        BEGIN
+            -- Validar que la cantidad sea positiva
+            IF @cantidad_servicio IS NULL OR @cantidad_servicio <= 0
+            BEGIN
+                THROW 50013, 'La cantidad del servicio debe ser mayor a 0.', 1;
+            END
+
+            -- Verificar que el servicio existe y está activo
+            IF NOT EXISTS (
+                SELECT 1 FROM dbo.servicio_adicional
+                WHERE id_servicio_adicional = @id_servicio_adicional
+                AND fecha_eliminacion IS NULL
+            )
+            BEGIN
+                INSERT INTO dbo.alerta (id_cliente, tipo, descripcion)
+                VALUES (@id_cliente, 'ERROR', 'El servicio adicional solicitado no existe o fue eliminado.');
+                THROW 50011, 'El servicio adicional no existe o fue eliminado.', 1;
+            END
+
+            -- Usar la función para calcular el margen del servicio
+            SET @margen_servicio = dbo.fn_calcular_margen_servicio(@id_servicio_adicional);
+
+            -- Validar que el servicio tenga margen positivo
+            IF @margen_servicio < 0
+            BEGIN
+                INSERT INTO dbo.alerta (id_cliente, tipo, descripcion)
+                VALUES (@id_cliente, 'ADVERTENCIA', 
+                    'Servicio adicional con margen negativo (ID: ' + CAST(@id_servicio_adicional AS VARCHAR) + 
+                    ', Margen: ' + CAST(@margen_servicio AS VARCHAR) + ')');
+                THROW 50012, 'El servicio adicional tiene un margen negativo y no puede ser agregado.', 1;
+            END
+
+            -- Obtener precio del servicio
+            SELECT @precio_servicio = precio
+            FROM dbo.servicio_adicional
+            WHERE id_servicio_adicional = @id_servicio_adicional;
+        END
 
         -- Verificar si el cliente quiere agregar un detalle a una reserva existente en las mismas fechas
         IF EXISTS (
@@ -134,7 +179,7 @@ BEGIN
                 SELECT total FROM dbo.reserva WHERE id_reserva = @id_reserva_existente
             );
 
-            DECLARE @nuevo_total DECIMAL(10,2) = (@precio_noche * @cant_noches) + @total_actual;
+            DECLARE @nuevo_total DECIMAL(10,2) = (@precio_noche * @cant_noches) + @total_actual + (@precio_servicio * @cantidad_servicio);
 
             -- Actualizar el total de la reserva existente con auditoría
             UPDATE dbo.reserva
@@ -146,6 +191,31 @@ BEGIN
             -- Insertar el nuevo detalle de reserva
             INSERT INTO dbo.detalle_reserva (id_reserva, id_habitacion, precio_noche, fecha_checkin, fecha_checkout, cant_noches)
             VALUES (@id_reserva_existente, @id_habitacion, @precio_noche, @fecha_inicio, @fecha_fin, @cant_noches);
+            
+            -- Insertar servicio adicional si fue proporcionado
+            IF @id_servicio_adicional IS NOT NULL
+            BEGIN
+                SET @subtotal_servicio = @precio_servicio * @cantidad_servicio;
+                
+                INSERT INTO dbo.consumo (
+                    id_cliente, 
+                    id_reserva, 
+                    id_servicio_adicional, 
+                    cantidad, 
+                    precio_unitario, 
+                    fecha_servicio, 
+                    subtotal
+                )
+                VALUES (
+                    @id_cliente, 
+                    @id_reserva_existente, 
+                    @id_servicio_adicional, 
+                    @cantidad_servicio, 
+                    @precio_servicio, 
+                    GETDATE(), 
+                    @subtotal_servicio
+                );
+            END
             
             COMMIT TRANSACTION;
 
@@ -159,16 +229,26 @@ BEGIN
                 @fecha_fin AS fecha_checkout,
                 @cant_noches AS cantidad_noches,
                 @precio_noche AS precio_noche,
+                @id_servicio_adicional AS id_servicio_adicional,
+                @cantidad_servicio AS cantidad_servicio,
+                @precio_servicio AS precio_servicio,
+                @subtotal_servicio AS subtotal_servicio,
+                @margen_servicio AS margen_servicio,
                 @nuevo_total AS total_reserva,
-                'Habitación agregada exitosamente a reserva existente' AS mensaje;
+                'Habitación agregada exitosamente a reserva existente' + 
+                CASE WHEN @id_servicio_adicional IS NOT NULL 
+                     THEN ' (incluye ' + CAST(@cantidad_servicio AS VARCHAR) + ' servicio(s) adicional(es))' 
+                     ELSE '' END AS mensaje;
             
             RETURN;
         END
         ELSE
         BEGIN
             -- Crear nueva reserva
+            DECLARE @total_reserva DECIMAL(10,2) = (@precio_noche * @cant_noches) + (@precio_servicio * @cantidad_servicio);
+            
             INSERT INTO dbo.reserva (id_cliente, fecha_checkin, fecha_checkout, creado_por, total)
-            VALUES (@id_cliente, @fecha_inicio, @fecha_fin, SYSTEM_USER, @precio_noche * @cant_noches);
+            VALUES (@id_cliente, @fecha_inicio, @fecha_fin, SYSTEM_USER, @total_reserva);
 
             -- Obtener el ID de la reserva recién creada
             DECLARE @id_reserva INT = SCOPE_IDENTITY();
@@ -176,6 +256,31 @@ BEGIN
             -- Crear el detalle de la reserva
             INSERT INTO detalle_reserva(id_reserva, id_habitacion, precio_noche, fecha_checkin, fecha_checkout, cant_noches)
             VALUES (@id_reserva, @id_habitacion, @precio_noche, @fecha_inicio, @fecha_fin, @cant_noches);
+
+            -- Insertar servicio adicional si fue proporcionado
+            IF @id_servicio_adicional IS NOT NULL
+            BEGIN
+                SET @subtotal_servicio = @precio_servicio * @cantidad_servicio;
+                
+                INSERT INTO dbo.consumo (
+                    id_cliente, 
+                    id_reserva, 
+                    id_servicio_adicional, 
+                    cantidad, 
+                    precio_unitario, 
+                    fecha_servicio, 
+                    subtotal
+                )
+                VALUES (
+                    @id_cliente, 
+                    @id_reserva, 
+                    @id_servicio_adicional, 
+                    @cantidad_servicio, 
+                    @precio_servicio, 
+                    GETDATE(), 
+                    @subtotal_servicio
+                );
+            END
 
             COMMIT TRANSACTION;
 
@@ -189,8 +294,16 @@ BEGIN
                 @fecha_fin AS fecha_checkout,
                 @cant_noches AS cantidad_noches,
                 @precio_noche AS precio_noche,
-                @precio_noche * @cant_noches AS total_reserva,
-                'Reserva creada exitosamente' AS mensaje;
+                @id_servicio_adicional AS id_servicio_adicional,
+                @cantidad_servicio AS cantidad_servicio,
+                @precio_servicio AS precio_servicio,
+                @subtotal_servicio AS subtotal_servicio,
+                @margen_servicio AS margen_servicio,
+                @total_reserva AS total_reserva,
+                'Reserva creada exitosamente' + 
+                CASE WHEN @id_servicio_adicional IS NOT NULL 
+                     THEN ' (incluye ' + CAST(@cantidad_servicio AS VARCHAR) + ' servicio(s) adicional(es))' 
+                     ELSE '' END AS mensaje;
             
             RETURN;
         END

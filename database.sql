@@ -291,7 +291,7 @@ CREATE TABLE pago(
 
 CREATE TABLE alerta(
     id_alerta INT PRIMARY KEY IDENTITY (1,1),
-    tipo VARCHAR(20), -- REPETICION, ERROR, MANTENIMIENTO
+    tipo VARCHAR(20), -- REPETICION, ERROR, MANTENIMIENTO, ADVERTENCIA
     descripcion VARCHAR(500),
     id_cliente INT NULL,
     id_reserva INT NULL,
@@ -302,7 +302,7 @@ CREATE TABLE alerta(
     fecha_modificacion DATETIME,
     eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
-    CHECK (tipo IN ('REPETICION', 'ERROR', 'MANTENIMIENTO')),
+    CHECK (tipo IN ('REPETICION', 'ERROR', 'MANTENIMIENTO', 'ADVERTENCIA')),
     FOREIGN KEY (id_reserva) REFERENCES reserva(id_reserva),
     FOREIGN KEY (id_habitacion) REFERENCES habitacion(id_habitacion)
 );
