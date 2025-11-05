@@ -6,8 +6,11 @@ CREATE TABLE temporada (
     descripcion VARCHAR(255),
     fecha_inicio  DATETIME,
     fecha_fin DATETIME,
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (fecha_fin > fecha_inicio)
 );
@@ -17,8 +20,11 @@ CREATE TABLE tipo_habitacion(
     nombre VARCHAR(50),
     descripcion VARCHAR(255),
     capacidad INT,
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (capacidad > 0)
 );
@@ -29,8 +35,11 @@ CREATE TABLE tarifa(
     id_temporada INT,
     descripcion VARCHAR(255),
     precio_noche DECIMAL(10,2),
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (precio_noche >= 0),
     FOREIGN KEY (id_tipo_habitacion) REFERENCES tipo_habitacion(id_tipo_habitacion),
@@ -41,8 +50,11 @@ CREATE TABLE vista(
     id_vista INT PRIMARY KEY IDENTITY(1,1),
     nombre VARCHAR(50),
     descripcion VARCHAR(255),
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME
 );
 
@@ -55,8 +67,11 @@ CREATE TABLE habitacion(
     descripcion VARCHAR(255),
     piso INT,
     estado_operativo VARCHAR(20) DEFAULT 'DISPONIBLE', -- DISPONIBLE, FUERA_SERVICIO, INACTIVA
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (piso >= 0),
     CHECK (estado_operativo IN ('DISPONIBLE', 'FUERA_SERVICIO', 'INACTIVA', 'OCUPADA')),
@@ -73,8 +88,11 @@ CREATE TABLE cliente(
     telefono VARCHAR(20),
     estado VARCHAR(20) DEFAULT 'ACTIVO', -- ACTIVO, INACTIVO
     fecha_nacimiento DATETIME,
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK ((YEAR(GETDATE()) - YEAR(fecha_nacimiento)) >= 18 ),
     CHECK (
@@ -117,9 +135,11 @@ CREATE TABLE reserva(
     total DECIMAL(10,2),
     fecha_checkin DATETIME,
     fecha_checkout DATETIME,
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
-    creado_por VARCHAR(50),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (estado_reserva IN ('PENDIENTE', 'CONFIRMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA')),
     CHECK (fecha_checkout > fecha_checkin),
@@ -136,8 +156,11 @@ CREATE TABLE detalle_reserva(
     fecha_checkin DATETIME,
     fecha_checkout DATETIME,
     cant_noches INT, --trazabilidad de costos
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (fecha_checkout > fecha_checkin),
     CHECK (precio_noche >= 0),
@@ -154,8 +177,11 @@ CREATE TABLE servicio_adicional(
     costo DECIMAL(10,2), -- Costo del servicio para calcular margen (Ejercicio 1)
     precio DECIMAL(10,2),
     cupo_diario_max INT, -- Cupo máximo por día (ej: Spa = 50 cupos/día)
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (costo >= 0),
     CHECK (precio >= 0),
@@ -171,8 +197,11 @@ CREATE TABLE consumo(
     precio_unitario DECIMAL(10,2), -- trazabilidad de costos
     fecha_servicio DATETIME,
     subtotal DECIMAL(10,2), -- trazabilidad de costos
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (cantidad > 0),
     CHECK (precio_unitario >= 0),
@@ -195,8 +224,11 @@ CREATE TABLE factura(
     total DECIMAL(10,2),
     estado VARCHAR(20), -- EMITIDA, ANULADA
     fecha_emision DATETIME DEFAULT GETDATE(),
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (tipo_comprobante IN ('FACTURA', 'BOLETA', 'TICKET')),
     CHECK (estado IN ('EMITIDA', 'ANULADA')),
@@ -217,8 +249,11 @@ CREATE TABLE detalle_factura(
     -- Referencias opcionales para trazabilidad
     id_detalle_reserva INT NULL, -- Si es una habitación
     id_consumo INT NULL, -- Si es un servicio adicional
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (cantidad > 0),
     CHECK (precio_unitario >= 0),
@@ -239,8 +274,11 @@ CREATE TABLE pago(
     referencia VARCHAR(100), -- Número de transacción, cheque, etc.
     concepto VARCHAR(255), -- Ej: "Seña reserva habitación 201", "Saldo check-in"
     fecha_pago DATETIME DEFAULT GETDATE(),
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
     fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
     fecha_eliminacion DATETIME,
     CHECK (tipo_pago IN ('SEÑA', 'ANTICIPO', 'SALDO', 'CONSUMO')),
     CHECK (metodo_pago IN ('TARJETA_CREDITO', 'TARJETA_DEBITO', 'EFECTIVO', 'TRANSFERENCIA')),
@@ -258,7 +296,12 @@ CREATE TABLE alerta(
     id_cliente INT NULL,
     id_reserva INT NULL,
     id_habitacion INT NULL,
+    creado_por VARCHAR(100) DEFAULT SYSTEM_USER,
     fecha_creacion DATETIME DEFAULT GETDATE(),
+    modificado_por VARCHAR(100),
+    fecha_modificacion DATETIME,
+    eliminado_por VARCHAR(100),
+    fecha_eliminacion DATETIME,
     CHECK (tipo IN ('REPETICION', 'ERROR', 'MANTENIMIENTO')),
     FOREIGN KEY (id_reserva) REFERENCES reserva(id_reserva),
     FOREIGN KEY (id_habitacion) REFERENCES habitacion(id_habitacion)
