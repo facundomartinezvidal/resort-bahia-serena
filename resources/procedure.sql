@@ -263,7 +263,6 @@ BEGIN
                 SET @subtotal_servicio = @precio_servicio * @cantidad_servicio;
                 
                 INSERT INTO dbo.consumo (
-                    id_cliente, 
                     id_reserva, 
                     id_servicio_adicional, 
                     cantidad, 
@@ -272,7 +271,6 @@ BEGIN
                     subtotal
                 )
                 VALUES (
-                    @id_cliente, 
                     @id_reserva, 
                     @id_servicio_adicional, 
                     @cantidad_servicio, 
