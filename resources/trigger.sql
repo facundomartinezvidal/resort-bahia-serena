@@ -26,14 +26,14 @@ BEGIN
         FROM inserted i
         INNER JOIN dbo.reserva r ON i.id_reserva = r.id_reserva;
 
-        -- Verificar si existe duplicación: mismo cliente, misma habitación, mismo check-in
+        -- Verificar si existe duplicación: mismo cliente, misma habitación, check-in cercano (±5 minutos)
         IF EXISTS (
             SELECT 1
             FROM dbo.detalle_reserva dr
             INNER JOIN dbo.reserva r ON dr.id_reserva = r.id_reserva
             WHERE r.id_cliente = @id_cliente
             AND dr.id_habitacion = @id_habitacion
-            AND dr.fecha_checkin = @fecha_checkin
+            AND dr.fecha_checkin BETWEEN DATEADD(MINUTE, -5, @fecha_checkin) AND DATEADD(MINUTE, 5, @fecha_checkin)
             AND r.estado_reserva NOT IN ('CANCELADA', 'COMPLETADA')
             AND r.fecha_eliminacion IS NULL
             AND dr.fecha_eliminacion IS NULL
@@ -43,8 +43,8 @@ BEGIN
             INSERT INTO dbo.alerta (tipo, descripcion, id_cliente, id_reserva, id_habitacion, creado_por)
             VALUES (
                 'REPETICION',
-                'Intento de duplicación bloqueado: mismo cliente, misma habitación, mismo check-in (' + 
-                CONVERT(VARCHAR, @fecha_checkin, 103) + ')',
+                'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano (±5min) (' + 
+                CONVERT(VARCHAR, @fecha_checkin, 120) + ')',
                 @id_cliente,
                 @id_reserva,
                 @id_habitacion,
@@ -52,7 +52,7 @@ BEGIN
             );
 
             -- Lanzar error (no hace falta ROLLBACK porque el INSERT nunca se ejecutó)
-            THROW 50010, 'No se puede reservar la misma habitación para el mismo cliente en el mismo check-in. Operación bloqueada y registrada en alertas.', 1;
+            THROW 50010, 'No se puede reservar la misma habitación para el mismo cliente en fechas de check-in muy cercanas (±5 minutos). Operación bloqueada y registrada en alertas.', 1;
         END
         ELSE
         BEGIN
