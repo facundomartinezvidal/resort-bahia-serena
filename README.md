@@ -1,6 +1,25 @@
 # resort-bahia-serena
 
-“Bahía Serena” es un hotel resort frente al mar que combina alojamiento y
+## Trabajo Práctico - Ingeniería de Datos I
+
+**Universidad:** Universidad Argentina de la Empresa  
+**Materia:** Ingeniería de Datos I  
+**Profesor:** Montero, Juan Carlos  
+**Fecha de entrega:** 5/11/2025
+
+### Integrantes
+
+- Iñaki Moreno - 1156320
+- Lucas Faure - 1138280
+- Facundo Martínez Vidal - 1156810
+- Felipe Leandro Veiga - 1184792
+- Martín Amadeo Noblia - 1177016
+
+---
+
+## Descripción del Proyecto
+
+"Bahía Serena" es un hotel resort frente al mar que combina alojamiento y
 experiencias. Dispone de tres tipos de habitación —Estandar, Superior y Suite—
 diseñados para familias, parejas y viajeros corporativos. Cada habitación tiene un
 código único, piso, vista (Mar, Jardín, Interna), capacidad determinada por el tipo,
@@ -49,3 +68,28 @@ En cuanto a reportes y cálculos sencillos, la gerencia solicita recursos reutil
    mismo cliente en el mismo check-in;
 5. Un cursor que inactiva habitaciones Fuera de Servicio y deja registro en
    ALERTAS.
+
+---
+
+## Estructura del Proyecto
+
+### Archivos Principales
+
+- **`database.sql`** - Script de creación de la base de datos completa con todas las tablas, constraints y validaciones del sistema.
+- **`seed.sql`** - Datos de prueba para poblar la base de datos con temporadas, tipos de habitación, habitaciones, tarifas, servicios adicionales y clientes de ejemplo.
+
+### Carpeta `/resources`
+
+Contiene los recursos SQL implementados según los requerimientos del negocio:
+
+- **`function.sql`** - Función `fn_calcular_margen_servicio` que calcula el margen de rentabilidad (precio - costo) de un servicio adicional.
+
+- **`view.sql`** - Vista `vw_habitaciones_repetidas` que lista intentos de reserva duplicados por cliente y habitación para auditoría de errores.
+
+- **`procedure.sql`** - Procedimiento almacenado `sp_reservar_habitacion` que gestiona el proceso completo de reservas validando cliente activo, disponibilidad de habitaciones, tarifas vigentes y cálculo de totales.
+
+- **`trigger.sql`** - Trigger `trg_validar_duplicacion_habitacion` que previene la duplicación de reservas (mismo cliente, misma habitación, mismo check-in) y registra alertas de tipo REPETICION.
+
+- **`cursor.sql`** - Procedimiento `sp_inactivar_habitaciones_fuera_servicio` con cursor que procesa habitaciones en estado FUERA_SERVICIO, las marca como INACTIVA y registra alertas de tipo MANTENIMIENTO.
+
+- **`alerta.sql`** - Procedimiento auxiliar `sp_registrar_alerta` para centralizar el registro de alertas operativas del sistema.
