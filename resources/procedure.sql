@@ -305,34 +305,8 @@ BEGIN
         DECLARE @ErrorState INT = ERROR_STATE();
         DECLARE @ErrorNumber INT = ERROR_NUMBER();
 
-        IF @ErrorNumber = 50003
-        BEGIN
-            EXEC dbo.sp_registrar_alerta 
-                @id_cliente = @id_cliente,
-                @id_habitacion = NULL,
-                @tipo = 'ERROR',
-                @descripcion = 'El cliente no existe, no está activo o fue eliminado.',
-                @creado_por = 'sp_reservar_habitacion';
-        END
-        ELSE IF @ErrorNumber = 50004
-        BEGIN
-            EXEC dbo.sp_registrar_alerta 
-                @id_cliente = @id_cliente,
-                @id_habitacion = @id_habitacion,
-                @tipo = 'ERROR',
-                @descripcion = 'La habitación no existe, no está disponible o fue eliminada.',
-                @creado_por = 'sp_reservar_habitacion';
-        END
-        ELSE IF @ErrorNumber = 50006
-        BEGIN
-            EXEC dbo.sp_registrar_alerta 
-                @id_cliente = @id_cliente,
-                @id_habitacion = @id_habitacion,
-                @tipo = 'ERROR',
-                @descripcion = 'La fecha de check-in no puede ser anterior a la fecha actual.',
-                @creado_por = 'sp_reservar_habitacion';
-        END
-        ELSE IF @ErrorNumber = 50005
+       
+        IF @ErrorNumber = 50005
         BEGIN
             EXEC dbo.sp_registrar_alerta 
                 @id_cliente = @id_cliente,

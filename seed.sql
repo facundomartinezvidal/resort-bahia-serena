@@ -2,16 +2,13 @@
 
 -- Alta de Temporadas
 INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('ALTA', 'Temporada alta de verano', '2024-12-01', '2025-02-28');
+VALUES ('ALTA', 'Temporada alta de verano', '2024-12-01', '2025-12-28');
 
 INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('MEDIA', 'Temporada media de primavera y otoño', '2025-03-01', '2025-05-31');
+VALUES ('MEDIA', 'Temporada media de primavera y otoño', '2024-03-01', '2025-12-31');
 
 INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('BAJA', 'Temporada baja de invierno', '2025-06-01', '2025-11-30');
-
-INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('ALTA', 'Temporada alta de verano 2026', '2025-12-01', '2026-02-28');
+VALUES ('BAJA', 'Temporada baja de invierno', '2024-06-01', '2025-11-30');
 
 -- Tipo de Habitaciones
 INSERT INTO tipo_habitacion (nombre, descripcion, capacidad)
@@ -54,16 +51,6 @@ VALUES (2, 3, 350.00); -- Suite - Baja
 
 INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
 VALUES (3, 3, 250.00); -- Superior - Baja
-
---Alta 2026
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (1, 4, 320.00); -- Estandar - Alta 2026
-
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (2, 4, 620.00); -- Suite - Alta 2026
-
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (3, 4, 470.00); -- Superior - Alta 2026
 
 --Vistas
 INSERT INTO vista (nombre, descripcion)
@@ -167,97 +154,15 @@ INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitaci
 VALUES (309, 'Superior Interna 309', 'Habitación superior sin vista exterior', 3, 3);
 
 
--- Servicios Adicionales
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Masaje Relajante', 'Masaje de cuerpo completo 60 minutos', 40.00, 80.00, 20);
+-- Servicios adicionales
+INSERT INTO servicio_adicional (nombre, descripcion, costo, precio)
+VALUES ('Desayuno', 'Desayuno incluido en la reserva', 100.00, 100.00);
 
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Masaje Piedras Calientes', 'Masaje con piedras volcánicas 90 minutos', 60.00, 120.00, 15);
+INSERT INTO servicio_adicional (nombre, descripcion, costo, precio)
+VALUES ('Lunch', 'Lunch incluido en la reserva', 150.00, 150.00);
 
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Tratamiento Facial', 'Limpieza facial profunda y mascarilla', 35.00, 70.00, 25);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Sauna y Jacuzzi', 'Acceso a sauna y jacuzzi por 2 horas', 15.00, 30.00, 50);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Yoga Matinal', 'Clase de yoga al amanecer', 10.00, 25.00, 30);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Desayuno Buffet', 'Desayuno buffet en restaurante principal', 15.00, 35.00, 200);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Almuerzo a la Carta', 'Almuerzo en restaurante principal', 25.00, 50.00, 150);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Cena Romántica', 'Cena romántica con vista al mar', 50.00, 120.00, 30);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Cena Temática', 'Cena temática con show en vivo', 40.00, 90.00, 80);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Bebidas Premium Bar', 'Carta de cócteles y bebidas premium', 8.00, 18.00, NULL);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Minibar Habitación', 'Reposición minibar habitación', 12.00, 25.00, NULL);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Clase de Tenis', 'Clase privada de tenis 1 hora', 20.00, 45.00, 10);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Alquiler Kayak', 'Alquiler de kayak individual por hora', 8.00, 20.00, 25);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Buceo Iniciación', 'Clase de buceo para principiantes', 45.00, 95.00, 12);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Excursión Isla', 'Tour en barco a isla cercana', 35.00, 75.00, 40);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Cabalgata Playa', 'Paseo a caballo por la playa', 25.00, 60.00, 15);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Tour Histórico', 'Visita guiada ciudad histórica', 20.00, 50.00, 35);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Snorkeling', 'Equipo de snorkeling y guía', 15.00, 35.00, 30);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Windsurf', 'Alquiler equipo windsurf y clase', 30.00, 65.00, 10);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Lavandería Express', 'Servicio de lavandería 24 horas', 8.00, 20.00, NULL);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Planchado', 'Servicio de planchado por prenda', 2.00, 5.00, NULL);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Transfer Aeropuerto', 'Traslado desde/hacia aeropuerto', 25.00, 60.00, NULL);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Alquiler Bicicleta', 'Alquiler de bicicleta por día', 5.00, 15.00, 50);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Niñera', 'Servicio de cuidado infantil por hora', 12.00, 30.00, 8);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Kids Club', 'Actividades para niños medio día', 18.00, 40.00, 25);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Fotografía Profesional', 'Sesión fotográfica profesional', 40.00, 95.00, 8);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Cena Privada Playa', 'Cena privada en la playa', 80.00, 180.00, 5);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Clase Golf', 'Clase de golf con instructor profesional', 35.00, 75.00, 8);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Pesca Deportiva', 'Excursión de pesca deportiva', 50.00, 110.00, 12);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max)
-VALUES ('Room Service 24h', 'Servicio a la habitación 24 horas', 5.00, 15.00, NULL);
-
+INSERT INTO servicio_adicional (nombre, descripcion, costo, precio)
+VALUES ('Cena', 'Cena incluida en la reserva', 200.00, 200.00);
 
 -- Cliente
 INSERT INTO cliente (nombre, apellido, dni, email, telefono, fecha_nacimiento)
@@ -265,5 +170,9 @@ VALUES ('Facundo', 'Martinez Vidal', '43872046', 'fmartinezv@gmail.com', '116666
 
 INSERT INTO cliente (nombre, apellido, dni, email, telefono, fecha_nacimiento)
 VALUES ('Iñaki', 'Moreno', '43668254', 'imorenog@gmail.com', '2396605576', '2001-10-5');
+
+INSERT INTO cliente (nombre, apellido, dni, email, telefono, fecha_nacimiento)
+VALUES ('Faure', 'Lucas', '43688022', 'lfaure@gmail.com', '2396605576', '2002-08-22');
+
 
 
