@@ -304,6 +304,7 @@ CREATE TABLE alerta(
     fecha_eliminacion DATETIME,
     CHECK (tipo IN ('REPETICION', 'ERROR', 'MANTENIMIENTO', 'ADVERTENCIA')),
     FOREIGN KEY (id_reserva) REFERENCES reserva(id_reserva),
-    FOREIGN KEY (id_habitacion) REFERENCES habitacion(id_habitacion)
+    FOREIGN KEY (id_habitacion) REFERENCES habitacion(id_habitacion),
+    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
 );
 
