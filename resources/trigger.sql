@@ -39,49 +39,49 @@ BEGIN
             AND dr.fecha_eliminacion IS NULL
         )
         BEGIN
-            -- Registrar alerta
-            INSERT INTO dbo.alerta (tipo, descripcion, id_cliente, id_reserva, id_habitacion, creado_por)
-            VALUES (
-                'REPETICION',
-                'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano (±5min) (' + 
-                CONVERT(VARCHAR, @fecha_checkin, 120) + ')',
-                @id_cliente,
-                @id_reserva,
-                @id_habitacion,
-                'trg_validar_duplicacion_habitacion'
-            );
-
-            -- Lanzar error (no hace falta ROLLBACK porque el INSERT nunca se ejecutó)
-            THROW 50010, 'No se puede reservar la misma habitación para el mismo cliente en fechas de check-in muy cercanas (±5 minutos). Operación bloqueada y registrada en alertas.', 1;
+            THROW 50020, 'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano.', 1;
         END
-        ELSE
-        BEGIN
-            -- Si no hay duplicación, realizar el INSERT original preservando auditoría
-            INSERT INTO dbo.detalle_reserva (
-                id_reserva, 
-                id_habitacion, 
-                precio_noche, 
-                fecha_checkin, 
-                fecha_checkout, 
-                cant_noches,
-                creado_por
-            )
-            SELECT 
-                id_reserva,
-                id_habitacion,
-                precio_noche,
-                fecha_checkin,
-                fecha_checkout,
-                cant_noches,
-                COALESCE(creado_por, SYSTEM_USER)
-            FROM inserted;
-        END
+        
+        -- Si no hay duplicación, realizar el INSERT original preservando auditoría
+        INSERT INTO dbo.detalle_reserva (
+            id_reserva, 
+            id_habitacion, 
+            precio_noche, 
+            fecha_checkin, 
+            fecha_checkout, 
+            cant_noches,
+            creado_por
+        )
+        SELECT 
+            id_reserva,
+            id_habitacion,
+            precio_noche,
+            fecha_checkin,
+            fecha_checkout,
+            cant_noches,
+            COALESCE(creado_por, SYSTEM_USER)
+        FROM inserted;
 
     END TRY
     BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+
         DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
         DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
         DECLARE @ErrorState INT = ERROR_STATE();
+        DECLARE @ErrorNumber INT = ERROR_NUMBER();
+        
+        -- Registrar alerta después del error
+        IF @ErrorNumber = 50020
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'REPETICION',
+                @descripcion = 'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano.',
+                @creado_por = 'trg_validar_duplicacion_habitacion';
+        END
         
         RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
     END CATCH

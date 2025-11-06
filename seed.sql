@@ -5,10 +5,13 @@ INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
 VALUES ('ALTA', 'Temporada alta de verano', '2024-12-01', '2025-02-28');
 
 INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('MEDIA', 'Temporada media de primavera y otoño', '2024-03-01', '2024-05-31');
+VALUES ('MEDIA', 'Temporada media de primavera y otoño', '2025-03-01', '2025-05-31');
 
 INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('BAJA', 'Temporada baja de invierno', '2024-06-01', '2024-11-30');
+VALUES ('BAJA', 'Temporada baja de invierno', '2025-06-01', '2025-11-30');
+
+INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
+VALUES ('ALTA', 'Temporada alta de verano 2026', '2025-12-01', '2026-02-28');
 
 -- Tipo de Habitaciones
 INSERT INTO tipo_habitacion (nombre, descripcion, capacidad)
@@ -51,6 +54,16 @@ VALUES (2, 3, 350.00); -- Suite - Baja
 
 INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
 VALUES (3, 3, 250.00); -- Superior - Baja
+
+--Alta 2026
+INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
+VALUES (1, 4, 320.00); -- Estandar - Alta 2026
+
+INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
+VALUES (2, 4, 620.00); -- Suite - Alta 2026
+
+INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
+VALUES (3, 4, 470.00); -- Superior - Alta 2026
 
 --Vistas
 INSERT INTO vista (nombre, descripcion)
@@ -165,30 +178,30 @@ INSERT INTO cliente (nombre, apellido, dni, email, telefono, fecha_nacimiento)
 VALUES ('Faure', 'Lucas', '43688022', 'lfaure@gmail.com', '2396605576', '2002-08-22');
 
 -- Reserva
-INSERT INTO reserva (id_cliente, fecha_checkin, fecha_checkout)
-VALUES (1, '2024-12-15', '2024-12-20');
+INSERT INTO reserva (id_cliente, fecha_checkin, fecha_checkout, total)
+VALUES (1, '2025-12-15', '2025-12-20', 1600.00);
 
 INSERT INTO detalle_reserva (id_reserva, id_habitacion, precio_noche, fecha_checkin, fecha_checkout, cant_noches)
-VALUES (1, 1, 300.00, '2024-12-15', '2024-12-20', 5);
+VALUES (1, 1, 320.00, '2025-12-15', '2025-12-20', 5);
 
-INSERT INTO reserva (id_cliente, fecha_checkin, fecha_checkout)
-VALUES (2, '2024-12-18', '2024-12-22');
+INSERT INTO reserva (id_cliente, fecha_checkin, fecha_checkout, total)
+VALUES (2, '2025-12-18', '2025-12-22', 2480.00);
 
 INSERT INTO detalle_reserva (id_reserva, id_habitacion, precio_noche, fecha_checkin, fecha_checkout, cant_noches)
-VALUES (2, 10, 600.00, '2024-12-18', '2024-12-22', 4);
+VALUES (2, 10, 620.00, '2025-12-18', '2025-12-22', 4);
 
+-- Alertas de ejemplo
+INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion, creado_por)
+VALUES (1, 1, 1, 'REPETICION', 'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano.', 'trg_validar_duplicacion_habitacion');
 
--- Alertas de Repetición
-INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion)
-VALUES (1, 1, 1, 'REPETICION', 'El cliente ya ha intentado reservar esta habitación en las fechas solicitadas.');
-INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion)
-VALUES (1, 1, 1, 'REPETICION', 'El cliente ya ha intentado reservar esta habitación en las fechas solicitadas.');
+INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion, creado_por)
+VALUES (1, 1, 1, 'REPETICION', 'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano.', 'trg_validar_duplicacion_habitacion');
 
-INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion)
-VALUES (2, 2, 10, 'REPETICION', 'El cliente ya ha intentado reservar esta habitación en las fechas solicitadas.');
-INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion)
-VALUES (2, 2, 10, 'REPETICION', 'El cliente ya ha intentado reservar esta habitación en las fechas solicitadas.');
-INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion)
-VALUES (2, 2, 10, 'REPETICION', 'El cliente ya ha intentado reservar esta habitación en las fechas solicitadas.');
+INSERT INTO alerta (id_cliente, id_reserva, id_habitacion, tipo, descripcion, creado_por)
+VALUES (2, 2, 10, 'REPETICION', 'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano.', 'trg_validar_duplicacion_habitacion');
 
+INSERT INTO alerta (id_cliente, id_habitacion, tipo, descripcion, creado_por)
+VALUES (1, 5, 'ERROR', 'La habitación ya está reservada en las fechas solicitadas.', 'sp_reservar_habitacion');
 
+INSERT INTO alerta (id_cliente, tipo, descripcion, creado_por)
+VALUES (3, 'ERROR', 'El servicio adicional solicitado no existe o fue eliminado.', 'sp_reservar_habitacion');

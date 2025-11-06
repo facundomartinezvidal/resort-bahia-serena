@@ -29,7 +29,10 @@ BEGIN
         END
 
         -- Validar que la fecha de check-in no sea en el pasado
-
+        IF @fecha_inicio < CAST(GETDATE() AS DATE)
+        BEGIN
+            THROW 50006, 'La fecha de check-in no puede ser anterior a la fecha actual.', 1;
+        END
 
         -- Verificar si el cliente existe, está activo y no está eliminado
         IF NOT EXISTS (
@@ -67,9 +70,7 @@ BEGIN
                  OR dr.fecha_checkin BETWEEN @fecha_inicio AND @fecha_fin)
         )
         BEGIN
-            INSERT INTO dbo.alerta (id_cliente, id_habitacion, tipo, descripcion)
-            VALUES (@id_cliente, @id_habitacion, 'ERROR', 'La habitación ya está reservada en las fechas solicitadas.');
-            THROW 50006, 'La habitación ya está reservada en las fechas solicitadas.', 1;
+            THROW 50005, 'La habitación ya está reservada en las fechas solicitadas.', 1;
         END
 
         -- Obtener temporada actual
@@ -83,8 +84,6 @@ BEGIN
         -- Validar que exista temporada para la fecha
         IF @id_temporada IS NULL
         BEGIN
-            INSERT INTO dbo.alerta (id_cliente, id_habitacion, tipo, descripcion)
-            VALUES (@id_cliente, @id_habitacion, 'ERROR', 'No existe temporada vigente para la fecha de check-in solicitada.');
             THROW 50007, 'No existe temporada vigente para la fecha de check-in.', 1;
         END
 
@@ -102,8 +101,6 @@ BEGIN
         -- Validar que exista tarifa para el tipo de habitación y temporada
         IF @precio_noche IS NULL
         BEGIN
-            INSERT INTO dbo.alerta (id_cliente, id_habitacion, tipo, descripcion)
-            VALUES (@id_cliente, @id_habitacion, 'ERROR', 'No existe tarifa vigente para el tipo de habitación en la temporada solicitada.');
             THROW 50008, 'No existe tarifa vigente para el tipo de habitación en la temporada solicitada.', 1;
         END
 
@@ -128,8 +125,6 @@ BEGIN
                 AND fecha_eliminacion IS NULL
             )
             BEGIN
-                INSERT INTO dbo.alerta (id_cliente, tipo, descripcion)
-                VALUES (@id_cliente, 'ERROR', 'El servicio adicional solicitado no existe o fue eliminado.');
                 THROW 50011, 'El servicio adicional no existe o fue eliminado.', 1;
             END
 
@@ -139,10 +134,6 @@ BEGIN
             -- Validar que el servicio tenga margen positivo
             IF @margen_servicio < 0
             BEGIN
-                INSERT INTO dbo.alerta (id_cliente, tipo, descripcion)
-                VALUES (@id_cliente, 'ADVERTENCIA', 
-                    'Servicio adicional con margen negativo (ID: ' + CAST(@id_servicio_adicional AS VARCHAR) + 
-                    ', Margen: ' + CAST(@margen_servicio AS VARCHAR) + ')');
                 THROW 50012, 'El servicio adicional tiene un margen negativo y no puede ser agregado.', 1;
             END
 
@@ -312,6 +303,117 @@ BEGIN
         DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
         DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
         DECLARE @ErrorState INT = ERROR_STATE();
+        DECLARE @ErrorNumber INT = ERROR_NUMBER();
+        
+        -- Registrar alerta después del rollback basándose en el código de error
+        IF @ErrorNumber = 50000
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = NULL,
+                @tipo = 'ERROR',
+                @descripcion = 'El id_cliente es inválido.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50001
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'ERROR',
+                @descripcion = 'El id_habitacion es inválido.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50002
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'ERROR',
+                @descripcion = 'Las fechas de reserva son inválidas.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50003
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = NULL,
+                @tipo = 'ERROR',
+                @descripcion = 'El cliente no existe, no está activo o fue eliminado.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50004
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'ERROR',
+                @descripcion = 'La habitación no existe, no está disponible o fue eliminada.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50006
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'ERROR',
+                @descripcion = 'La fecha de check-in no puede ser anterior a la fecha actual.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50005
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'ERROR',
+                @descripcion = 'La habitación ya está reservada en las fechas solicitadas.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50007
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'ERROR',
+                @descripcion = 'No existe temporada vigente para la fecha de check-in solicitada.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50008
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = @id_habitacion,
+                @tipo = 'ERROR',
+                @descripcion = 'No existe tarifa vigente para el tipo de habitación en la temporada solicitada.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50011
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = NULL,
+                @tipo = 'ERROR',
+                @descripcion = 'El servicio adicional solicitado no existe o fue eliminado.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50012
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = NULL,
+                @tipo = 'ERROR',
+                @descripcion = 'El servicio adicional tiene un margen negativo y no puede ser agregado.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
+        ELSE IF @ErrorNumber = 50013
+        BEGIN
+            EXEC dbo.sp_registrar_alerta 
+                @id_cliente = @id_cliente,
+                @id_habitacion = NULL,
+                @tipo = 'ERROR',
+                @descripcion = 'La cantidad del servicio debe ser mayor a 0.',
+                @creado_por = 'sp_reservar_habitacion';
+        END
         
         RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
     END CATCH
