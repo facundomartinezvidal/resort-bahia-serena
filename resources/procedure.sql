@@ -8,7 +8,7 @@ CREATE OR ALTER PROCEDURE dbo.sp_reservar_habitacion
 AS
 BEGIN
     SET NOCOUNT ON;
-    
+
     BEGIN TRY
         BEGIN TRANSACTION;
 
@@ -29,10 +29,7 @@ BEGIN
         END
 
         -- Validar que la fecha de check-in no sea en el pasado
-        IF @fecha_inicio < CAST(GETDATE() AS DATE)
-        BEGIN
-            THROW 50009, 'La fecha de check-in no puede ser anterior a la fecha actual.', 1;
-        END
+
 
         -- Verificar si el cliente existe, está activo y no está eliminado
         IF NOT EXISTS (
@@ -61,6 +58,7 @@ BEGIN
             SELECT 1 FROM dbo.reserva r
             INNER JOIN dbo.detalle_reserva dr on r.id_reserva = dr.id_reserva
             WHERE dr.id_habitacion = @id_habitacion
+            AND r.id_cliente <> @id_cliente  -- Excluir al cliente actual
             AND r.estado_reserva NOT IN ('CANCELADA', 'COMPLETADA')
             AND r.fecha_eliminacion IS NULL
             AND dr.fecha_eliminacion IS NULL
@@ -92,7 +90,7 @@ BEGIN
 
         -- Obtener precio por noche
         DECLARE @precio_noche DECIMAL(10,2) = (
-            SELECT t.precio_noche
+            SELECT TOP 1 t.precio_noche
             FROM dbo.habitacion
             INNER JOIN dbo.tipo_habitacion th on th.id_tipo_habitacion = dbo.habitacion.id_tipo_habitacion
             INNER JOIN dbo.tarifa t on th.id_tipo_habitacion = t.id_tipo_habitacion
