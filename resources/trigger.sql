@@ -77,6 +77,7 @@ BEGIN
         BEGIN
             EXEC dbo.sp_registrar_alerta 
                 @id_cliente = @id_cliente,
+                @id_reserva = @id_reserva,
                 @id_habitacion = @id_habitacion,
                 @tipo = 'REPETICION',
                 @descripcion = 'Intento de duplicación bloqueado: mismo cliente, misma habitación, check-in cercano.',

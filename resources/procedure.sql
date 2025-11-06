@@ -304,36 +304,8 @@ BEGIN
         DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
         DECLARE @ErrorState INT = ERROR_STATE();
         DECLARE @ErrorNumber INT = ERROR_NUMBER();
-        
-        -- Registrar alerta después del rollback basándose en el código de error
-        IF @ErrorNumber = 50000
-        BEGIN
-            EXEC dbo.sp_registrar_alerta 
-                @id_cliente = @id_cliente,
-                @id_habitacion = NULL,
-                @tipo = 'ERROR',
-                @descripcion = 'El id_cliente es inválido.',
-                @creado_por = 'sp_reservar_habitacion';
-        END
-        ELSE IF @ErrorNumber = 50001
-        BEGIN
-            EXEC dbo.sp_registrar_alerta 
-                @id_cliente = @id_cliente,
-                @id_habitacion = @id_habitacion,
-                @tipo = 'ERROR',
-                @descripcion = 'El id_habitacion es inválido.',
-                @creado_por = 'sp_reservar_habitacion';
-        END
-        ELSE IF @ErrorNumber = 50002
-        BEGIN
-            EXEC dbo.sp_registrar_alerta 
-                @id_cliente = @id_cliente,
-                @id_habitacion = @id_habitacion,
-                @tipo = 'ERROR',
-                @descripcion = 'Las fechas de reserva son inválidas.',
-                @creado_por = 'sp_reservar_habitacion';
-        END
-        ELSE IF @ErrorNumber = 50003
+
+        IF @ErrorNumber = 50003
         BEGIN
             EXEC dbo.sp_registrar_alerta 
                 @id_cliente = @id_cliente,
