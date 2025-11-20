@@ -96,18 +96,18 @@ CREATE TABLE cliente(
     fecha_eliminacion DATETIME,
     CHECK ((YEAR(GETDATE()) - YEAR(fecha_nacimiento)) >= 18 ),
     CHECK (
-        email LIKE '%_@_%.__%' AND                          -- Formato básico: algo@algo.algo
-        email NOT LIKE '%@%@%' AND                          -- No permite múltiples @
-        email NOT LIKE '@%' AND                             -- No empieza con @
-        email NOT LIKE '%@' AND                             -- No termina con @
-        email NOT LIKE '%.@%' AND                           -- No permite .@
-        email NOT LIKE '%@.%' AND                           -- No permite @.
-        email NOT LIKE '% %' AND                            -- No permite espacios
-        email NOT LIKE '%..' AND                            -- No permite puntos consecutivos
-        LEN(email) >= 6 AND                                 -- Mínimo 6 caracteres (a@b.co)
-        LEN(email) <= 100 AND                               -- Máximo 100 caracteres
-        CHARINDEX('.', SUBSTRING(email, CHARINDEX('@', email), LEN(email))) > 0 AND  -- Debe haber . después de @
-        LEN(SUBSTRING(email, CHARINDEX('@', email) + 1, LEN(email))) >= 4  -- Mínimo 4 chars después de @ (x.co)
+        email LIKE '%_@_%.__%' AND          -- Formato básico
+        email NOT LIKE '%@%@%' AND          -- No múltiples @
+        email NOT LIKE '@%' AND             -- No empieza con @
+        email NOT LIKE '%@' AND             -- No termina con @
+        email NOT LIKE '%.@%' AND           -- No .@
+        email NOT LIKE '%@.%' AND           -- No @.
+        email NOT LIKE '% %' AND            -- No espacios
+        email NOT LIKE '%..%' AND           -- <--- CORREGIDO: Bloquea '..' en CUALQUIER parte
+        LEN(email) >= 6 AND
+        LEN(email) <= 100 AND
+        CHARINDEX('.', SUBSTRING(email, CHARINDEX('@', email), LEN(email))) > 0 AND
+        LEN(SUBSTRING(email, CHARINDEX('@', email) + 1, LEN(email))) >= 4
     ),
     CHECK (estado IN ('ACTIVO', 'INACTIVO'))
 );
