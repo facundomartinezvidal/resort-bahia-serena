@@ -1,7 +1,17 @@
-USE master
+-- Crear la base de datos si no existe
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'BahiaSerenaDB')
+BEGIN
+	CREATE DATABASE BahiaSerenaDB;
+END
+GO
 
+-- Usar la base de datos creada
+USE BahiaSerenaDB;
+GO
+
+-- Crear las tablas de la base de datos
 CREATE TABLE temporada (
-    id_temporada INT PRIMARY KEY IDENTITY (1,1),
+    id_temporada INT PRIMARY KEY IDENTITY(1,1),
     nombre VARCHAR(50),
     descripcion VARCHAR(255),
     fecha_inicio  DATETIME,
@@ -16,7 +26,7 @@ CREATE TABLE temporada (
 );
 
 CREATE TABLE tipo_habitacion(
-    id_tipo_habitacion INT PRIMARY KEY IDENTITY (1,1),
+    id_tipo_habitacion INT PRIMARY KEY IDENTITY(1,1),
     nombre VARCHAR(50),
     descripcion VARCHAR(255),
     capacidad INT,
@@ -30,7 +40,7 @@ CREATE TABLE tipo_habitacion(
 );
 
 CREATE TABLE tarifa(
-    id_tarifa INT PRIMARY KEY IDENTITY (1,1),
+    id_tarifa INT PRIMARY KEY IDENTITY(1,1),
     id_tipo_habitacion INT,
     id_temporada INT,
     descripcion VARCHAR(255),
@@ -59,7 +69,7 @@ CREATE TABLE vista(
 );
 
 CREATE TABLE habitacion(
-    id_habitacion INT PRIMARY KEY IDENTITY (1,1),
+    id_habitacion INT PRIMARY KEY IDENTITY(1,1),
     numero_habitacion VARCHAR(10) UNIQUE,
     id_tipo_habitacion INT,
     id_vista INT,
@@ -80,7 +90,7 @@ CREATE TABLE habitacion(
 );
 
 CREATE TABLE cliente(
-    id_cliente INT PRIMARY KEY IDENTITY (1,1),
+    id_cliente INT PRIMARY KEY IDENTITY(1,1),
     nombre VARCHAR(50),
     apellido VARCHAR(50),
     dni VARCHAR(20) UNIQUE,
@@ -129,7 +139,7 @@ CREATE TABLE cliente(
 -- ✗ Inválidos: @mail.com, user@, user@@mail.com, user@mail, a@b.c (muy corto después de @)
 
 CREATE TABLE reserva(
-    id_reserva INT PRIMARY KEY IDENTITY (1,1),
+    id_reserva INT PRIMARY KEY IDENTITY(1,1),
     id_cliente INT,
     estado_reserva VARCHAR(20) DEFAULT 'PENDIENTE', -- PENDIENTE, CONFIRMADA, EN_CURSO, COMPLETADA, CANCELADA
     total DECIMAL(10,2),
@@ -149,7 +159,7 @@ CREATE TABLE reserva(
 
 
 CREATE TABLE detalle_reserva(
-    id_detalle_reserva INT PRIMARY KEY IDENTITY (1,1),
+    id_detalle_reserva INT PRIMARY KEY IDENTITY(1,1),
     id_reserva INT,
     id_habitacion INT,
     precio_noche DECIMAL(10,2), --trazabilidad de costos
@@ -171,7 +181,7 @@ CREATE TABLE detalle_reserva(
 
 
 CREATE TABLE servicio_adicional(
-    id_servicio_adicional INT PRIMARY KEY IDENTITY (1,1),
+    id_servicio_adicional INT PRIMARY KEY IDENTITY(1,1),
     nombre VARCHAR(50),
     descripcion VARCHAR(255),
     costo DECIMAL(10,2), -- Costo del servicio para calcular margen (Ejercicio 1)
@@ -189,7 +199,7 @@ CREATE TABLE servicio_adicional(
 );
 
 CREATE TABLE consumo(
-    id_consumo INT PRIMARY KEY IDENTITY (1,1),
+    id_consumo INT PRIMARY KEY IDENTITY(1,1),
     id_cliente INT,
     id_reserva INT,
     id_servicio_adicional INT,
@@ -213,7 +223,7 @@ CREATE TABLE consumo(
 );
 
 CREATE TABLE factura(
-    id_factura INT PRIMARY KEY IDENTITY (1,1),
+    id_factura INT PRIMARY KEY IDENTITY(1,1),
     id_cliente INT, -- Factura al cliente, no necesariamente a una reserva
     id_reserva INT NULL, -- Puede ser NULL si es solo servicios adicionales
     numero_factura VARCHAR(50) UNIQUE NOT NULL, -- Ej: F-2025-00001
@@ -240,7 +250,7 @@ CREATE TABLE factura(
 );
 
 CREATE TABLE detalle_factura(
-    id_detalle_factura INT PRIMARY KEY IDENTITY (1,1),
+    id_detalle_factura INT PRIMARY KEY IDENTITY(1,1),
     id_factura INT,
     concepto VARCHAR(255), -- Ej: "Habitación Suite - 3 noches", "Spa - Masaje relajante"
     cantidad INT,
@@ -264,7 +274,7 @@ CREATE TABLE detalle_factura(
 );
 
 CREATE TABLE pago(
-    id_pago INT PRIMARY KEY IDENTITY (1,1),
+    id_pago INT PRIMARY KEY IDENTITY(1,1),
     id_reserva INT NULL, -- NULL para clientes walk-in sin reserva
     id_factura INT NULL, -- NULL si es pago anticipado (seña), luego se vincula
     tipo_pago VARCHAR(20), -- SEÑA, ANTICIPO, SALDO, CONSUMO
@@ -290,7 +300,7 @@ CREATE TABLE pago(
 );
 
 CREATE TABLE alerta(
-    id_alerta INT PRIMARY KEY IDENTITY (1,1),
+    id_alerta INT PRIMARY KEY IDENTITY(1,1),
     tipo VARCHAR(20), -- REPETICION, ERROR, MANTENIMIENTO, ADVERTENCIA
     descripcion VARCHAR(500),
     id_cliente INT NULL,
@@ -307,4 +317,3 @@ CREATE TABLE alerta(
     FOREIGN KEY (id_habitacion) REFERENCES habitacion(id_habitacion),
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
 );
-
