@@ -21,6 +21,4 @@ GROUP BY
     c.dni,
     a.id_habitacion,
     h.nombre,
-    r.fecha_checkin;
-
-
+    r.fecha_checkin

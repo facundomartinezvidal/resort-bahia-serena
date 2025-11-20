@@ -1,5 +1,5 @@
 
-USE bahia_serena;
+USE BahiaSerenaDB;
 GO
 
 SET NOCOUNT ON;
@@ -55,12 +55,14 @@ DBCC CHECKIDENT ('factura', RESEED, 0);
 -- ==============================================================================
 PRINT '2. Configurando Maestros (Temporadas, Hab, Servicios)...';
 
--- Temporadas (Pasado, Presente, Futuro)
+-- Temporadas (Pasado, Presente, Futuro) - Ajustadas para Nov 2025
 INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin) VALUES
-('Temp Baja 2024', 'Invierno Pasado', '2024-06-01', '2024-08-31'),
-('Temp Media 2024', 'Primavera Pasada', '2024-09-01', '2024-11-30'),
-('Temp Alta 2025', 'Verano Actual', '2024-12-01', '2025-03-31'),
-('Temp Baja 2025', 'Invierno Futuro', '2025-06-01', '2025-08-31');
+('Temp Alta 2024-2025', 'Verano Pasado', '2024-12-01', '2025-03-31'),
+('Temp Baja 2025', 'Invierno Pasado', '2025-04-01', '2025-08-31'),
+('Temp Media 2025', 'Primavera Actual', '2025-09-01', '2025-11-30'),
+('Temp Alta 2025-2026', 'Verano Próximo', '2025-12-01', '2026-03-31'),
+('Temp Baja 2026', 'Invierno Futuro', '2026-04-01', '2026-08-31')
+
 
 -- Tipos de Habitación
 INSERT INTO tipo_habitacion (nombre, descripcion, capacidad) VALUES
@@ -293,6 +295,74 @@ BEGIN
     SET @k = @k + 1;
 END
 
+-- ==============================================================================
+-- 5. GENERACIÓN DE ALERTAS (Para demostrar la vista de habitaciones repetidas)
+-- ==============================================================================
+PRINT '5. Generando Alertas de Repetición...';
+
+-- Simulamos que algunos clientes intentaron reservar la misma habitación varias veces
+DECLARE @alert_count INT = 0;
+DECLARE @cliente_alerta INT;
+DECLARE @hab_alerta INT;
+DECLARE @reserva_alerta INT;
+DECLARE @fecha_checkin_alerta DATETIME;
+
+-- Generamos 15 alertas de repetición
+WHILE @alert_count < 15
+BEGIN
+    -- Seleccionar una reserva al azar
+    SELECT TOP 1 
+        @reserva_alerta = r.id_reserva,
+        @cliente_alerta = r.id_cliente,
+        @fecha_checkin_alerta = r.fecha_checkin
+    FROM reserva r
+    WHERE r.estado_reserva IN ('CONFIRMADA', 'EN_CURSO', 'COMPLETADA')
+    ORDER BY NEWID();
+    
+    -- Obtener la habitación de esa reserva
+    SELECT TOP 1 @hab_alerta = id_habitacion 
+    FROM detalle_reserva 
+    WHERE id_reserva = @reserva_alerta;
+    
+    -- Generar entre 2 y 5 intentos de alerta para la misma combinación
+    DECLARE @intentos INT = (ABS(CHECKSUM(NEWID())) % 4) + 2; -- Entre 2 y 5
+    DECLARE @intento_actual INT = 0;
+    
+    WHILE @intento_actual < @intentos
+    BEGIN
+        BEGIN TRY
+            -- Insertar alerta con delay simulado entre intentos
+            INSERT INTO alerta (id_cliente, id_habitacion, tipo, descripcion, id_reserva, creado_por, fecha_creacion)
+            VALUES (
+                @cliente_alerta,
+                @hab_alerta,
+                'REPETICION',
+                CONCAT('Cliente intentó reservar habitación ', @hab_alerta, ' para fecha ', 
+                       CONVERT(VARCHAR(10), @fecha_checkin_alerta, 120), ' múltiples veces'),
+                @reserva_alerta,
+                'SISTEMA_RESERVAS',
+                DATEADD(MINUTE, -(@intentos - @intento_actual) * 5, GETDATE()) -- Simular intentos espaciados
+            );
+        END TRY
+        BEGIN CATCH
+            -- Ignorar errores y continuar
+        END CATCH
+        
+        SET @intento_actual = @intento_actual + 1;
+    END
+    
+    SET @alert_count = @alert_count + 1;
+END
+
+-- Agregar algunas alertas adicionales de otros tipos para variedad
+INSERT INTO alerta (id_habitacion, tipo, descripcion, creado_por) VALUES
+((SELECT TOP 1 id_habitacion FROM habitacion WHERE estado_operativo = 'FUERA_SERVICIO' ORDER BY NEWID()), 
+ 'MANTENIMIENTO', 'Habitación requiere mantenimiento preventivo de aire acondicionado', 'STAFF_MANTENIMIENTO');
+
+INSERT INTO alerta (id_habitacion, tipo, descripcion, creado_por) VALUES
+((SELECT TOP 1 id_habitacion FROM habitacion ORDER BY NEWID()), 
+ 'ADVERTENCIA', 'Revisar sistema de agua caliente en esta habitación', 'STAFF_RECEPCION');
+
 PRINT '==========================================================';
 PRINT ' SEEDING FINALIZADO CON ÉXITO ';
 PRINT '==========================================================';
@@ -320,3 +390,15 @@ FROM cliente c
 JOIN reserva r ON c.id_cliente = r.id_cliente
 GROUP BY c.nombre, c.apellido
 ORDER BY total_gastado DESC;
+
+PRINT ''
+PRINT 'ALERTAS POR TIPO:'
+SELECT tipo, COUNT(*) as cantidad
+FROM alerta
+GROUP BY tipo
+ORDER BY cantidad DESC;
+
+PRINT ''
+PRINT 'VISTA: HABITACIONES CON INTENTOS DE RESERVA REPETIDOS:'
+SELECT * FROM dbo.vw_habitaciones_repetidas
+ORDER BY cantidad_intentos DESC;
