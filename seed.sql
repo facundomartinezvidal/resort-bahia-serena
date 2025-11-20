@@ -1,178 +1,322 @@
 
+USE bahia_serena;
+GO
 
--- Alta de Temporadas
-INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('ALTA', 'Temporada alta de verano', '2024-12-01', '2025-12-28');
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
 
-INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('MEDIA', 'Temporada media de primavera y otoño', '2024-03-01', '2025-12-31');
+PRINT '==========================================================';
+PRINT ' INICIANDO SEEDING MASIVO DE DATOS PARA PRESENTACIÓN';
+PRINT '==========================================================';
 
-INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin)
-VALUES ('BAJA', 'Temporada baja de invierno', '2024-06-01', '2025-11-30');
+-- ==============================================================================
+-- 1. LIMPIEZA (Opcional: Comentar si se quieren mantener datos previos)
+-- ==============================================================================
+PRINT '1. Limpiando tablas...';
+-- Desactivar constraints temporalmente para borrado rápido
+ALTER TABLE detalle_reserva NOCHECK CONSTRAINT ALL;
+ALTER TABLE reserva NOCHECK CONSTRAINT ALL;
+ALTER TABLE factura NOCHECK CONSTRAINT ALL;
+ALTER TABLE detalle_factura NOCHECK CONSTRAINT ALL;
+ALTER TABLE pago NOCHECK CONSTRAINT ALL;
+ALTER TABLE consumo NOCHECK CONSTRAINT ALL;
 
--- Tipo de Habitaciones
-INSERT INTO tipo_habitacion (nombre, descripcion, capacidad)
-VALUES ('ESTANDAR', 'Habitación estándar con comodidades básicas', 2);
+DELETE FROM alerta;
+DELETE FROM pago;
+DELETE FROM detalle_factura;
+DELETE FROM factura;
+DELETE FROM consumo;
+DELETE FROM detalle_reserva;
+DELETE FROM reserva;
+DELETE FROM habitacion;
+DELETE FROM tarifa;
+DELETE FROM tipo_habitacion;
+DELETE FROM temporada;
+DELETE FROM vista;
+DELETE FROM servicio_adicional;
+DELETE FROM cliente;
 
-INSERT INTO tipo_habitacion (nombre, descripcion, capacidad)
-VALUES ('SUITE', 'Habitación de lujo con sala de estar separada', 4);
+-- Reactivar constraints
+ALTER TABLE detalle_reserva CHECK CONSTRAINT ALL;
+ALTER TABLE reserva CHECK CONSTRAINT ALL;
+ALTER TABLE factura CHECK CONSTRAINT ALL;
+ALTER TABLE detalle_factura CHECK CONSTRAINT ALL;
+ALTER TABLE pago CHECK CONSTRAINT ALL;
+ALTER TABLE consumo CHECK CONSTRAINT ALL;
 
-INSERT INTO tipo_habitacion (nombre, descripcion, capacidad)
-VALUES ('SUPERIOR', 'Habitación superior con mejores vistas y comodidades', 3);
+-- Resetear contadores
+DBCC CHECKIDENT ('cliente', RESEED, 0);
+DBCC CHECKIDENT ('habitacion', RESEED, 0);
+DBCC CHECKIDENT ('reserva', RESEED, 0);
+DBCC CHECKIDENT ('factura', RESEED, 0);
 
+-- ==============================================================================
+-- 2. CONFIGURACIÓN DEL HOTEL
+-- ==============================================================================
+PRINT '2. Configurando Maestros (Temporadas, Hab, Servicios)...';
 
--- Tarifas
---Alta
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (1, 1, 300.00); -- Estandar - Alta
+-- Temporadas (Pasado, Presente, Futuro)
+INSERT INTO temporada (nombre, descripcion, fecha_inicio, fecha_fin) VALUES
+('Temp Baja 2024', 'Invierno Pasado', '2024-06-01', '2024-08-31'),
+('Temp Media 2024', 'Primavera Pasada', '2024-09-01', '2024-11-30'),
+('Temp Alta 2025', 'Verano Actual', '2024-12-01', '2025-03-31'),
+('Temp Baja 2025', 'Invierno Futuro', '2025-06-01', '2025-08-31');
 
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (2, 1, 600.00); -- Suite - Alta
+-- Tipos de Habitación
+INSERT INTO tipo_habitacion (nombre, descripcion, capacidad) VALUES
+('Standard', 'Habitación cómoda para 2', 2),
+('Superior', 'Mayor espacio y confort', 3),
+('Suite', 'Lujo total con jacuzzi', 4);
 
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (3, 1, 450.00); -- Superior - Alta
+-- Vistas
+INSERT INTO vista (nombre, descripcion) VALUES 
+('Mar', 'Vista frontal al mar caribe'), 
+('Jardín', 'Vista al jardin'), 
+('Interna', 'Vista al interior del edificio');
 
---Media
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (1, 2, 250.00); -- Estandar - Media
+-- Servicios Adicionales
+INSERT INTO servicio_adicional (nombre, descripcion, costo, precio, cupo_diario_max) VALUES
+('Gimnasio', 'Gimnasio premium con zona de cardio ', 5.00, 15.00, 200),
+('Traslado aeropuerto', 'Charter bus para traslado desde aeropuerto hasta el hotel', 20.00, 60.00, 15),
+('Cena tematica', 'Cena en restaurante 4 estrellas ambientado con tematica caribeña', 40.00, 100.00, 10),
+('Excursion atardecer', 'Excursion hacia isla remota', 30.00, 80.00, 5),
+('Alquiler de bicicletas', 'Alquiler de bicicletas para movilizarse dentro del resort', 10.00, 25.00, 100),
+('Piscina premium','Piscina exclusiva climatizada',25,40,50);
 
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (2, 2, 550.00); -- Suite - Media
+-- Tarifas (Generación dinámica de precios por temporada)
+INSERT INTO tarifa (id_tipo_habitacion, id_temporada, descripcion, precio_noche)
+SELECT th.id_tipo_habitacion, t.id_temporada, 
+       CONCAT(th.nombre, ' - ', t.nombre),
+       CASE 
+           WHEN th.nombre = 'Standard' THEN 100 + (CASE WHEN t.nombre LIKE '%Alta%' THEN 50 ELSE 0 END)
+           WHEN th.nombre = 'Deluxe' THEN 150 + (CASE WHEN t.nombre LIKE '%Alta%' THEN 80 ELSE 0 END)
+           WHEN th.nombre = 'Suite Presidencial' THEN 300 + (CASE WHEN t.nombre LIKE '%Alta%' THEN 150 ELSE 0 END)
+           ELSE 120
+       END
+FROM tipo_habitacion th CROSS JOIN temporada t;
 
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (3, 2, 350.00); -- Superior - Media
+-- Habitaciones (Generar 30 habitaciones: 10 por piso)
+DECLARE @piso INT = 1;
+DECLARE @hab_count INT = 1;
 
---Baja
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (1, 3, 150.00); -- Estandar - Baja
+-- Variables auxiliares para asegurar IDs válidos
+DECLARE @id_tipo_random INT;
+DECLARE @id_vista_random INT;
 
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (2, 3, 350.00); -- Suite - Baja
+WHILE @piso <= 3
+BEGIN
+    SET @hab_count = 1;
+    WHILE @hab_count <= 10
+    BEGIN
+        -- Seleccionamos un ID real existente al azar para evitar errores de FK
+        SELECT TOP 1 @id_tipo_random = id_tipo_habitacion FROM tipo_habitacion ORDER BY NEWID();
+        SELECT TOP 1 @id_vista_random = id_vista FROM vista ORDER BY NEWID();
 
-INSERT INTO tarifa (id_tipo_habitacion, id_temporada, precio_noche)
-VALUES (3, 3, 250.00); -- Superior - Baja
+        INSERT INTO habitacion (numero_habitacion, id_tipo_habitacion, id_vista, nombre, piso, estado_operativo)
+        VALUES (
+            CONCAT(@piso, '0', CASE WHEN @hab_count < 10 THEN '0' ELSE '' END, @hab_count), -- Ej: 1001, 1002
+            @id_tipo_random, -- Usamos el ID real obtenido
+            @id_vista_random, -- Usamos el ID real obtenido
+            CONCAT('Hab ', @piso, '0', @hab_count),
+            @piso,
+            CASE WHEN (ABS(CHECKSUM(NEWID())) % 20) = 0 THEN 'FUERA_SERVICIO' ELSE 'DISPONIBLE' END
+        );
+        SET @hab_count = @hab_count + 1;
+    END
+    SET @piso = @piso + 1;
+END
 
---Vistas
-INSERT INTO vista (nombre, descripcion)
-VALUES ('MAR', 'Vista al mar');
+-- ==============================================================================
+-- 3. GENERACIÓN DE CLIENTES (Datos Aleatorios)
+-- ==============================================================================
+PRINT '3. Creando 50 Clientes...';
+DECLARE @i INT = 0;
+DECLARE @nombre VARCHAR(50);
+DECLARE @apellido VARCHAR(50);
+DECLARE @dni VARCHAR(20);
 
-INSERT INTO vista (nombre, descripcion)
-VALUES ('Jardin', 'Vista al jardin');
+WHILE @i < 50
+BEGIN
+    -- Seleccionar nombre al azar
+    SELECT @nombre = CASE (ABS(CHECKSUM(NEWID())) % 10)
+        WHEN 0 THEN 'Carlos' WHEN 1 THEN 'Maria' WHEN 2 THEN 'Juan' WHEN 3 THEN 'Ana' WHEN 4 THEN 'Pedro'
+        WHEN 5 THEN 'Lucia' WHEN 6 THEN 'Miguel' WHEN 7 THEN 'Sofia' WHEN 8 THEN 'Diego' ELSE 'Elena' END;
+    
+    -- Seleccionar apellido al azar
+    SELECT @apellido = CASE (ABS(CHECKSUM(NEWID())) % 10)
+        WHEN 0 THEN 'Garcia' WHEN 1 THEN 'Martinez' WHEN 2 THEN 'Lopez' WHEN 3 THEN 'Rodriguez' WHEN 4 THEN 'Perez'
+        WHEN 5 THEN 'Fernandez' WHEN 6 THEN 'Gonzalez' WHEN 7 THEN 'Sanchez' WHEN 8 THEN 'Ramirez' ELSE 'Torres' END;
 
-INSERT INTO vista (nombre, descripcion)
-VALUES ('Interna', 'Sin vista exterior');
+    SET @dni = CAST(ABS(CHECKSUM(NEWID())) % 90000000 + 10000000 AS VARCHAR);
+    
+    BEGIN TRY
+        INSERT INTO cliente (nombre, apellido, dni, email, telefono, estado, fecha_nacimiento)
+        VALUES (
+            @nombre, 
+            @apellido, 
+            @dni, 
+            LOWER(CONCAT(@nombre, '.', @apellido, @i, '@gmail.com')), -- Email único y válido
+            CONCAT('555-', 1000 + @i),
+            'ACTIVO',
+            DATEADD(YEAR, - (20 + (ABS(CHECKSUM(NEWID())) % 30)), GETDATE()) -- Entre 20 y 50 años
+        );
+    END TRY
+    BEGIN CATCH
+        -- Ignorar duplicados si el azar falla
+    END CATCH
 
--- Habitaciones
--- Estandar - Vista Mar
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (101, 'Estandar Mar 101', 'Habitación estándar con vista al mar', 1, 1);
+    SET @i = @i + 1;
+END
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (102, 'Estandar Mar 102', 'Habitación estándar con vista al mar', 1, 1);
+-- ==============================================================================
+-- 4. GENERACIÓN DE RESERVAS Y TRANSACCIONES
+-- ==============================================================================
+PRINT '4. Generando Historial de Reservas, Consumos, Facturas y Pagos...';
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (103, 'Estandar Mar 103', 'Habitación estándar con vista al mar', 1, 1);
+DECLARE @k INT = 0;
+DECLARE @id_cliente INT;
+DECLARE @id_habitacion INT;
+DECLARE @fecha_inicio DATETIME;
+DECLARE @noches INT;
+DECLARE @total_reserva DECIMAL(10,2);
+DECLARE @precio_noche DECIMAL(10,2);
+DECLARE @id_reserva INT;
+DECLARE @estado_reserva VARCHAR(20);
 
--- Estandar - Vista Jardin
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (201, 'Estandar Jardin 201', 'Habitación estándar con vista al jardin', 1, 2);
+-- Generar 100 reservas mezcladas (Pasadas, Actuales, Futuras)
+WHILE @k < 100
+BEGIN
+    -- Cliente Aleatorio
+    SELECT TOP 1 @id_cliente = id_cliente FROM cliente ORDER BY NEWID();
+    -- Habitación Aleatoria
+    SELECT TOP 1 @id_habitacion = id_habitacion FROM habitacion WHERE estado_operativo = 'DISPONIBLE' ORDER BY NEWID();
+    
+    -- Fecha Aleatoria (Entre hace 6 meses y dentro de 3 meses)
+    SET @fecha_inicio = DATEADD(DAY, (ABS(CHECKSUM(NEWID())) % 270) - 180, GETDATE());
+    SET @noches = (ABS(CHECKSUM(NEWID())) % 7) + 2; -- 2 a 9 noches
+    
+    -- Determinar Estado basado en la fecha
+    IF @fecha_inicio < DATEADD(DAY, -@noches, GETDATE()) SET @estado_reserva = 'COMPLETADA'; -- Ya terminó
+    ELSE IF @fecha_inicio <= GETDATE() AND DATEADD(DAY, @noches, @fecha_inicio) >= GETDATE() SET @estado_reserva = 'EN_CURSO'; -- Ocurriendo ahora
+    ELSE SET @estado_reserva = 'CONFIRMADA'; -- Futura
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (202, 'Estandar Jardin 202', 'Habitación estándar con vista al jardin', 1, 2);
+    -- Obtener Precio (Simplificado: tomamos el precio actual de la habitación para no complicar el script con logica de temporadas)
+    -- En un seed real perfecto buscaríamos la tarifa exacta de la fecha, aquí usamos un promedio para velocidad
+    SELECT TOP 1 @precio_noche = t.precio_noche 
+    FROM tarifa t 
+    JOIN habitacion h ON h.id_tipo_habitacion = t.id_tipo_habitacion 
+    WHERE h.id_habitacion = @id_habitacion;
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (203, 'Estandar Jardin 203', 'Habitación estándar con vista al jardin', 1, 2);
+    SET @total_reserva = @precio_noche * @noches;
 
--- Estandar - Vista Interna
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (301, 'Estandar Interna 301', 'Habitación estándar sin vista exterior', 1, 3);
+    BEGIN TRY
+        -- Insertar Reserva (Directo para evitar validaciones complejas del SP en seeding masivo, pero manteniendo integridad)
+        -- Verificamos solapamiento simple antes de insertar
+        IF NOT EXISTS (
+            SELECT 1 FROM detalle_reserva 
+            WHERE id_habitacion = @id_habitacion 
+            AND (
+                (@fecha_inicio BETWEEN fecha_checkin AND fecha_checkout) OR 
+                (DATEADD(DAY, @noches, @fecha_inicio) BETWEEN fecha_checkin AND fecha_checkout)
+            )
+        )
+        BEGIN
+            INSERT INTO reserva (id_cliente, estado_reserva, total, fecha_checkin, fecha_checkout)
+            VALUES (@id_cliente, @estado_reserva, @total_reserva, @fecha_inicio, DATEADD(DAY, @noches, @fecha_inicio));
+            
+            SET @id_reserva = SCOPE_IDENTITY();
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (302, 'Estandar Interna 302', 'Habitación estándar sin vista exterior', 1, 3);
+            INSERT INTO detalle_reserva (id_reserva, id_habitacion, precio_noche, fecha_checkin, fecha_checkout, cant_noches)
+            VALUES (@id_reserva, @id_habitacion, @precio_noche, @fecha_inicio, DATEADD(DAY, @noches, @fecha_inicio), @noches);
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (303, 'Estandar Interna 303', 'Habitación estándar sin vista exterior', 1, 3);
+            -- -------------------------------------------------------
+            -- LOGICA FINANCIERA (Solo para COMPLETADA o EN_CURSO)
+            -- -------------------------------------------------------
+            IF @estado_reserva IN ('COMPLETADA', 'EN_CURSO')
+            BEGIN
+                -- 1. Generar Consumos Adicionales (50% probabilidad)
+                IF (ABS(CHECKSUM(NEWID())) % 2) = 0
+                BEGIN
+                    DECLARE @id_serv INT;
+                    DECLARE @costo_serv DECIMAL(10,2);
+                    DECLARE @precio_serv DECIMAL(10,2);
+                    
+                    SELECT TOP 1 @id_serv = id_servicio_adicional, @precio_serv = precio FROM servicio_adicional ORDER BY NEWID();
+                    
+                    INSERT INTO consumo (id_cliente, id_reserva, id_servicio_adicional, cantidad, precio_unitario, fecha_servicio, subtotal)
+                    VALUES (@id_cliente, @id_reserva, @id_serv, 2, @precio_serv, DATEADD(DAY, 1, @fecha_inicio), @precio_serv * 2);
+                    
+                    -- Actualizar total reserva
+                    UPDATE reserva SET total = total + (@precio_serv * 2) WHERE id_reserva = @id_reserva;
+                    SET @total_reserva = @total_reserva + (@precio_serv * 2);
+                END
 
--- Suite - Vista Mar
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (104, 'Suite Mar 104', 'Suite de lujo con vista al mar', 2, 1);
+                -- 2. Generar Factura y Pago (Solo si está completada o en curso pagada)
+                INSERT INTO factura (id_cliente, id_reserva, numero_factura, tipo_comprobante, concepto, subtotal, impuestos, total, estado)
+                VALUES (
+                    @id_cliente, 
+                    @id_reserva, 
+                    CONCAT('F-', YEAR(GETDATE()), '-', 10000 + @id_reserva), 
+                    'FACTURA', 
+                    'Hospedaje y Servicios', 
+                    @total_reserva * 0.8, -- Subtotal fake
+                    @total_reserva * 0.2, -- Impuesto fake
+                    @total_reserva, 
+                    'EMITIDA'
+                );
+                
+                DECLARE @id_factura INT = SCOPE_IDENTITY();
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (105, 'Suite Mar 105', 'Suite de lujo con vista al mar', 2, 1);
+                -- Detalle de factura
+                INSERT INTO detalle_factura (id_factura, concepto, cantidad, precio_unitario, subtotal)
+                VALUES (@id_factura, 'Alojamiento', @noches, @precio_noche, @precio_noche * @noches);
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (106, 'Suite Mar 106', 'Suite de lujo con vista al mar', 2, 1);
+                -- Pago Total
+                INSERT INTO pago (id_reserva, id_factura, tipo_pago, metodo_pago, monto, estado, referencia, concepto)
+                VALUES (
+                    @id_reserva, 
+                    @id_factura, 
+                    'SALDO', 
+                    CASE (ABS(CHECKSUM(NEWID())) % 3) WHEN 0 THEN 'TARJETA_CREDITO' WHEN 1 THEN 'EFECTIVO' ELSE 'TRANSFERENCIA' END, 
+                    @total_reserva, 
+                    'APROBADO', 
+                    CONCAT('TXN-', NEWID()), 
+                    'Pago total check-out'
+                );
+            END
+        END
+    END TRY
+    BEGIN CATCH
+        -- Si falla por overlap o constraint, continuamos al siguiente loop
+    END CATCH
 
--- Suite - Vista Jardin
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (204, 'Suite Jardin 204', 'Suite de lujo con vista al jardin', 2, 2);
+    SET @k = @k + 1;
+END
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (205, 'Suite Jardin 205', 'Suite de lujo con vista al jardin', 2, 2);
+PRINT '==========================================================';
+PRINT ' SEEDING FINALIZADO CON ÉXITO ';
+PRINT '==========================================================';
+GO
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (206, 'Suite Jardin 206', 'Suite de lujo con vista al jardin', 2, 2);
+-- ==============================================================================
+-- QUERIES PARA LA PRESENTACIÓN (CHEAT SHEET)
+-- Copia esto para tenerlo a mano durante la demo
+-- ==============================================================================
 
--- Suite - Vista Interna
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (304, 'Suite Interna 304', 'Suite de lujo sin vista exterior', 2, 3);
+PRINT ''
+PRINT 'DATOS GENERADOS:'
+PRINT '----------------'
+SELECT 'Clientes' as Tabla, COUNT(*) as Cantidad FROM cliente
+UNION ALL SELECT 'Habitaciones', COUNT(*) FROM habitacion
+UNION ALL SELECT 'Reservas Totales', COUNT(*) FROM reserva
+UNION ALL SELECT 'Facturas Emitidas', COUNT(*) FROM factura
+UNION ALL SELECT 'Pagos Registrados', COUNT(*) FROM pago;
 
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (305, 'Suite Interna 305', 'Suite de lujo sin vista exterior', 2, 3);
-
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (306, 'Suite Interna 306', 'Suite de lujo sin vista exterior', 2, 3);
-
--- Superior - Vista Mar
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (107, 'Superior Mar 107', 'Habitación superior con vista al mar', 3, 1);
-
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (108, 'Superior Mar 108', 'Habitación superior con vista al mar', 3, 1);
-
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (109, 'Superior Mar 109', 'Habitación superior con vista al mar', 3, 1);
-
--- Superior - Vista Jardin
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (207, 'Superior Jardin 207', 'Habitación superior con vista al jardin', 3, 2);
-
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (208, 'Superior Jardin 208', 'Habitación superior con vista al jardin', 3, 2);
-
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (209, 'Superior Jardin 209', 'Habitación superior con vista al jardin', 3, 2);
-
--- Superior - Vista Interna
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (307, 'Superior Interna 307', 'Habitación superior sin vista exterior', 3, 3);
-
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (308, 'Superior Interna 308', 'Habitación superior sin vista exterior', 3, 3);
-
-INSERT INTO habitacion (numero_habitacion, nombre, descripcion, id_tipo_habitacion, id_vista)
-VALUES (309, 'Superior Interna 309', 'Habitación superior sin vista exterior', 3, 3);
-
-
--- Servicios adicionales
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio)
-VALUES ('Desayuno', 'Desayuno incluido en la reserva', 100.00, 100.00);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio)
-VALUES ('Lunch', 'Lunch incluido en la reserva', 150.00, 150.00);
-
-INSERT INTO servicio_adicional (nombre, descripcion, costo, precio)
-VALUES ('Cena', 'Cena incluida en la reserva', 200.00, 200.00);
-
--- Cliente
-INSERT INTO cliente (nombre, apellido, dni, email, telefono, fecha_nacimiento)
-VALUES ('Facundo', 'Martinez Vidal', '43872046', 'fmartinezv@gmail.com', '1166660428', '2002-01-12');
-
-INSERT INTO cliente (nombre, apellido, dni, email, telefono, fecha_nacimiento)
-VALUES ('Iñaki', 'Moreno', '43668254', 'imorenog@gmail.com', '2396605576', '2001-10-5');
-
-INSERT INTO cliente (nombre, apellido, dni, email, telefono, fecha_nacimiento)
-VALUES ('Faure', 'Lucas', '43688022', 'lfaure@gmail.com', '2396605576', '2002-08-22');
-
-
-
+PRINT ''
+PRINT 'EJEMPLO: TOP 5 CLIENTES QUE MAS GASTARON (Para mostrar queries complejos):'
+SELECT TOP 5 
+    c.nombre, c.apellido, COUNT(r.id_reserva) as reservas, SUM(r.total) as total_gastado
+FROM cliente c
+JOIN reserva r ON c.id_cliente = r.id_cliente
+GROUP BY c.nombre, c.apellido
+ORDER BY total_gastado DESC;
